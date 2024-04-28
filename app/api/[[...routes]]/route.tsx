@@ -6,7 +6,7 @@ import { pinata } from 'frog/hubs'
 import { handle } from 'frog/next'
 import { serveStatic } from 'frog/serve-static'
 import { sql } from '@vercel/postgres';
-import { GetContracts, prohibitionBaseAddress, ReverseSplitString } from './utils'
+import { GetContracts, prohibitionBaseAddress, ReverseSplitString, GetAlchemyTokenInfo } from './utils'
 
 
 const app = new Frog({
@@ -89,7 +89,6 @@ app.frame('/collection/:range', async (c) => {
   }
 
   const contract = response[0]
-  console.log(contract)
   const name = contract.name
   const image = contract.image
   const descriptionRaw = contract.description
@@ -98,6 +97,7 @@ app.frame('/collection/:range', async (c) => {
   description = description.replaceAll('\r', '')
 
   const url = contract.externalUrl
+  console.log(`/view/${range}`)
 
   var intents = [
     <Button action={`/view/${range}`}>Explore Collection</Button>
@@ -169,7 +169,7 @@ app.frame('/collection/:range', async (c) => {
   })
 })
 
-app.frame('/view/:range/:token', async (c) => {
+app.frame('/view/:range/:token?', async (c) => {
   // 0x47a91457a3a1f700097199fd63c039c4784384ab:127000000:127999999
   const { range, token } = c.req.param()
 
@@ -183,58 +183,28 @@ app.frame('/view/:range/:token', async (c) => {
     return ReturnUnverified(c, "Invalid contract address")
   }
 
-  const startId = contractInfo[0]
-  const endId = contractInfo[1]
-
-  const response = await GetContracts(`${prohibitionBaseAddress}:${range}`)
-  if (response.length <= 0) {
-    return ReturnUnverified(c, "Unable to find contract details")
-  }
+  const startId = parseInt(contractInfo[0])
+  const endId = parseInt(contractInfo[1])
 
   let tokenId = 0
   if (!token) {
-    tokenId = parseInt(startId)
+    tokenId = startId
   } else {
     tokenId = parseInt(token)
   }
 
-  const contract = response[0]
-  console.log(contract)
-  const name = contract.name
-  const image = contract.image
-  const descriptionRaw = contract.description
+  let tokenInfo = await GetAlchemyTokenInfo(tokenId)
 
-  let description = ReverseSplitString(descriptionRaw, '\r\n')
-  description = description.replaceAll('\r', '')
+  const name = tokenInfo.name
+  const image = tokenInfo.image.cachedUrl
 
-  const url = contract.externalUrl
+  const nextToken = tokenId + 1 <= endId ? ++tokenId : startId
+  const randomToken = Math.floor(Math.random() * (endId - startId + 1)) + startId;
 
   var intents = [
-    <Button action={`/view/${range}`}>Next</Button>,
-    <Button action={`/view/${range}`}>Random</Button>
+    <Button action={`/view/${range}/${nextToken}`}>Next</Button>,
+    // <Button action={`/view/${range}/${randomToken}`}>Random</Button>
   ]
-
-  if (url) {
-    intents.push(<Button.Redirect location={`${url}`}>More Info</Button.Redirect>)
-  }
-
-  var descriptionDiv = []
-  if (description) {
-    descriptionDiv.push(<div
-      style={{
-        color: 'white',
-        fontSize: 20,
-        fontStyle: 'normal',
-        letterSpacing: '-0.025em',
-        lineHeight: 1.4,
-        marginTop: 10,
-        padding: '0 120px',
-        whiteSpace: 'pre-wrap'
-      }}
-    >
-      {`${description}`}
-    </div>)
-  }
 
   return c.res({
     image: (
@@ -266,7 +236,6 @@ app.frame('/view/:range/:token', async (c) => {
         >
           {`${name}`}
         </div>
-        {descriptionDiv}
         <img src={`${image}`}   style={{
             marginTop: 30,
             maxWidth: '300', /* Set maximum width */

@@ -6,7 +6,7 @@ const prohibitionBaseAddress = '0x47A91457a3a1f700097199Fd63c039c4784384aB'
 
 const alchemySettings = {
     apiKey: process.env.ALCHEMY_API_KEY, // Replace with your Alchemy API Key.
-    network: Network.BASE_MAINNET, // Replace with your network.
+    network: Network.ARB_MAINNET, // Replace with your network.
 };
 
 const alchemy = new Alchemy(alchemySettings);
@@ -45,7 +45,9 @@ function ReverseSplitString(str: string | undefined, separator: string) {
     return reversedString;
 }
 
-function GetAlchemyTokenInfo(tokenId: number) {
+async function GetAlchemyTokenInfo(tokenId: number) {
+    let nftInfo = await alchemy.nft.getNftMetadata(prohibitionBaseAddress, tokenId)
+    return nftInfo
     // let alchemyOptions = {
     //     contractAddresses: [contractAddress]
     // }
@@ -55,4 +57,4 @@ function GetAlchemyTokenInfo(tokenId: number) {
     // }
 }
 
-export { GetContracts, ReverseSplitString, prohibitionBaseAddress }
+export { GetContracts, ReverseSplitString, GetAlchemyTokenInfo, prohibitionBaseAddress }
