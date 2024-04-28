@@ -29,7 +29,6 @@ const app = new Frog({
 
 app.frame('/', (c) => {
   return c.res({
-    action: '/framemanager',
     image: (
       <div
         style={{
@@ -56,13 +55,14 @@ app.frame('/', (c) => {
             padding: '0 120px',
             whiteSpace: 'pre-wrap',
           }}
-        > Mint a Day Manager
+        > Prohibition.art
         </div>
       </div>
     ),
     intents: [
       <Button>Enter</Button>,
-    ]
+    ],
+    action: '/collection/127000000:127999999'
   })
 })
 
